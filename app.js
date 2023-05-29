@@ -3,11 +3,11 @@ const logger = require('morgan')
 const cors = require('cors')
 
 // const dotenv = require("dotenv")
-// dotenv.config()
-// .config() ищет .env и добавляет информацию
+
 require("dotenv").config()
 
 const contactsRouter = require('./routes/api/contacts')
+const authRouter = require('./routes/api/auth')
 
 const app = express()
 
@@ -22,7 +22,7 @@ app.use(cors())
 app.use(express.json())
 
 app.use('/api/contacts', contactsRouter)
-
+app.use('/api/users',authRouter)
 
 
 
