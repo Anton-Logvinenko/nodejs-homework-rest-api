@@ -1,4 +1,6 @@
 const { Schema, model } = require("mongoose");
+const handelMongooseError=  require('../helper/handelMongoosError')
+
 
 const contactSchema = new Schema(
   {
@@ -13,15 +15,21 @@ const contactSchema = new Schema(
     },
     phone: {
       type: String,
-      match: /^\(\d{3}\)-\d{3}-\d{4}$/,
+      match: /^\(\d{3}\)\d{3}-\d{4}$/,
     },
     favorite: {
       type: Boolean,
       default: false,
     },
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: 'user',
+    }
   },
   { versionKey: false, timestamps: true }
 );
+contactSchema.post("save", handelMongooseError)
+
 const Contact = model("contact", contactSchema);
 
 module.exports = Contact;

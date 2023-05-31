@@ -1,9 +1,9 @@
 const HttpError = require("../helper/HttpError");
 
-const validateBody = (contactSchema) => {
+const validateBody = (schema) => {
   const func = (req, res, next) => {
-    const { error } = contactSchema.validate(req.body);
-    console.log(contactSchema.validate(req.body));
+    const { error } = schema.validate(req.body);
+    
     if (error) {
       throw HttpError(400, error.message);
     }

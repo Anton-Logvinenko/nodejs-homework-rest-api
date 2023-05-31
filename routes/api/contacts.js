@@ -1,10 +1,10 @@
 const express = require("express");
 const contactsController= require("../../controllers/contact-controller.js")
 const router = express.Router();
-const {validateBody, isValidId}= require('../../decorators')
+const {validateBody, isValidId, aunthenticate}= require('../../decorators')
 const schema = require('../../schema/contactsSchema.js');
 
-
+router.use(aunthenticate)
 
 router.get("/", contactsController.getAllContacts);
 
