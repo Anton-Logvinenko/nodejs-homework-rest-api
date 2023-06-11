@@ -6,10 +6,11 @@ const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const path = require("path");
 const fs = require("fs/promises");
-
 const Jimp = require("jimp");
+const { nanoid } = require("nanoid");
+const sendEmail = require("../helper/sendEmail");
 
-const { SECRET_KEY } = process.env;
+const { SECRET_KEY, PROJECT_URL } = process.env;
 
 // register
 const register = async (req, res) => {
@@ -24,10 +25,20 @@ const register = async (req, res) => {
   // avatar
   const avatarURL = gravatar.url(email);
 
+  // sendEmail
+  const verificationToken = nanoid();
+  const vetificationEmail = {
+    to: email,
+    subject: "Verify email",
+    html: `<a  target="_blanc" href='${PROJECT_URL}/api/users/verify/${verificationToken}'> Click to verify email </a>`,
+  };
+  await sendEmail(vetificationEmail);
+
   const newUser = await User.create({
     ...req.body,
     password: hashPasword,
     avatarURL,
+    verificationToken,
   });
 
   res.status(201).json({
@@ -37,12 +48,48 @@ const register = async (req, res) => {
     },
   });
 };
+
+// verify
+
+const verify = async (req, res) => {
+  const { verificationToken } = req.params;
+  const user = await User.findOne({verificationToken});
+
+  if (!user) {
+    throw HttpError(404);
+  }
+  await User.findByIdAndUpdate(user._id, {
+    verify: true,
+    verificationToken: "",
+  });
+
+  res.json({ message: "Verify success!" });
+};
+
+const resendVerifyEmail= async (req, res) => {
+ const {email}=req.body;
+ const user= await User.findOne({email})
+ if(!user) {throw HttpError(404)};
+ if (user.verify){ throw  HttpError(400, "Email alredy verify")}
+
+ const vetificationEmail = {
+   to: email,
+   subject: "Verify email",
+   html: `<a  target="_blanc" href='${PROJECT_URL}/api/users/verify/${user.verificationToken}'> Click to verify email </a>`,
+ };
+ await sendEmail(vetificationEmail);
+
+ res.json({ message: "Verify email send!" });
+ 
+}
+
+
 // login
 const login = async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
 
-  if (!user) {
+  if (!user || !user.verify) {
     throw HttpError(401, "Email or password  ivalide");
   }
 
@@ -103,14 +150,14 @@ const updateAvatar = async (req, res) => {
   const { path: tempUpload, originalname } = req.file;
 
   // Jimp resize 250x250
-  const resizeAvatar= await Jimp.read(tempUpload)
-  resizeAvatar.resize(250,250).write(tempUpload)
+  const resizeAvatar = await Jimp.read(tempUpload);
+  resizeAvatar.resize(250, 250).write(tempUpload);
 
   // rename fileName
   const fileName = `${_id}_${originalname}`;
   const resultUpload = path.join(avatarsDir, fileName);
   await fs.rename(tempUpload, resultUpload);
-  
+
   const avatarUrl = path.join("avatars", fileName);
   await User.findByIdAndUpdate(_id, { avatarUrl });
 
@@ -124,4 +171,6 @@ module.exports = {
   logout: ctrlWrapper(logout),
   updateSubscription: ctrlWrapper(updateSubscription),
   updateAvatar: ctrlWrapper(updateAvatar),
+  verify: ctrlWrapper(verify),
+  resendVerifyEmail:ctrlWrapper(resendVerifyEmail),
 };
